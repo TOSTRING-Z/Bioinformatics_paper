@@ -15,6 +15,8 @@ glioblastoma_multiforme_Affymetrix `ESTIMATE得分数据`
 
 [http://www.cgga.org.cn/download.jsp][CGGA]
 
+[https://string-db.org/][STRING] `基因互作信息`
+
 ##软件使用
 GraphPad `画图，统计分析`
 SangerBox `数据分析`
@@ -25,3 +27,5 @@ SangerBox `数据分析`
 [ESTIMATE]: https://bioinformatics.mdanderson.org/estimate/disease.html?glioblastoma%20multiforme_Affymetrix
 
 [CGGA]: http://www.cgga.org.cn/download.jsp
+
+[STRING]: https://string-db.org/

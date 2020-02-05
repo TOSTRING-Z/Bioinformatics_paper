@@ -1,6 +1,4 @@
-import os
 import pandas as pd
-import numpy as np
 # pandas和R转换 https://rpy2.github.io/doc/latest/html/pandas.html
 # pandas与R对比 https://pandas.pydata.org/pandas-docs/stable/getting_started/comparison/comparison_with_r.html
 # 让R与Python共舞 https://www.cnblogs.com/lantingg/p/9600280.html
@@ -13,7 +11,7 @@ from rpy2.robjects.conversion import localconverter
 
 if __name__ == "__main__":
     # 设置数据路径
-    path = "/media/tostring/C4C9-E186/biological/文献/胶质母细胞瘤微环境预后相关基因的TCGA数据库挖掘/"
+    path = "/install/git/Bioinformatics_paper/胶质母细胞瘤微环境预后相关基因的TCGA数据库挖掘/"
     r.setwd(path)
     # 读取处理好的数据
     sample = pd.read_csv(f"{path}sample.txt", sep="\t")
@@ -41,12 +39,15 @@ if __name__ == "__main__":
     with localconverter(ro.default_converter + pandas2ri.converter):
         # 构建生存对象
         robjects.globalenv["cox_data"] = ro.conversion.py2rpy(sample[["Stromal_score","Stromal_Group","OS.time","OS"]].dropna())
-        robjects.globalenv["surv"] = r("Surv(time=cox_data$OS.time, event=cox_data$OS)")
-        # Kaplan-Meier生存曲线
-        KM_Stromal_fit = r("survfit(surv~cox_data$Stromal_Group)")
-        r.ggsave(r.autoplot(KM_Stromal_fit), file="KM_Stromal_fit.pdf")
-        # 单因素Cox
-        fit_Stromal_score = r("coxph(surv~cox_data$Stromal_score)")
+    robjects.globalenv["surv"] = r("Surv(time=cox_data$OS.time, event=cox_data$OS)")
+    # Kaplan-Meier生存曲线
+    KM_Stromal_fit = r("survfit(surv~cox_data$Stromal_Group)")
+    r.ggsave(r.autoplot(KM_Stromal_fit), file="KM_Stromal_fit.pdf")
+    # Long-rank检验(对数秩和检验)
+    print(r("survdiff(surv~cox_data$Stromal_Group,rho = 0)"))
+    # 单因素Cox
+    print(r("coxph(surv~cox_data$Stromal_score)"))
+
     ################# 基因差异表达分析 #################
     ## 读取表达矩阵
     group_list = "-".join(list(sample["Stromal_Group"].astype("str").unique()))
@@ -100,3 +101,5 @@ if __name__ == "__main__":
         MF.query("pvalue<0.05").to_csv(f"{path}MF.txt", sep="\t")
         CC.query("pvalue<0.05").to_csv(f"{path}CC.txt", sep="\t")
         KEGG.query("pvalue<0.05").to_csv(f"{path}KEGG.txt", sep="\t")
+
+
