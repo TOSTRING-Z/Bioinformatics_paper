@@ -1,0 +1,18 @@
+chr10	Cistrome_5244|Cell Line|LoVo	beta-Sheet binding to DNA	38872034	38872287	.	.	.	Name=HMGA1;Note=HMGA1:LoVo
+chr10	Cistrome_5244|Cell Line|LoVo	beta-Sheet binding to DNA	42379787	42380030	.	.	.	Name=HMGA1;Note=HMGA1:LoVo
+chr1	Cistrome_5244|Cell Line|LoVo	beta-Sheet binding to DNA	569284	569522	.	.	.	Name=HMGA1;Note=HMGA1:LoVo
+chr16	Cistrome_5244|Cell Line|LoVo	beta-Sheet binding to DNA	46422557	46422707	.	.	.	Name=HMGA1;Note=HMGA1:LoVo
+chr16	Cistrome_5244|Cell Line|LoVo	beta-Sheet binding to DNA	46424287	46424735	.	.	.	Name=HMGA1;Note=HMGA1:LoVo
+chr16	Cistrome_5244|Cell Line|LoVo	beta-Sheet binding to DNA	46428551	46428977	.	.	.	Name=HMGA1;Note=HMGA1:LoVo
+chr16	Cistrome_5244|Cell Line|LoVo	beta-Sheet binding to DNA	46435321	46435526	.	.	.	Name=HMGA1;Note=HMGA1:LoVo
+chr21	Cistrome_5244|Cell Line|LoVo	beta-Sheet binding to DNA	11186478	11186750	.	.	.	Name=HMGA1;Note=HMGA1:LoVo
+chr7	Cistrome_5244|Cell Line|LoVo	beta-Sheet binding to DNA	158387831	158387981	.	.	.	Name=HMGA1;Note=HMGA1:LoVo
+chr7	Cistrome_5244|Cell Line|LoVo	beta-Sheet binding to DNA	68654828	68654974	.	.	.	Name=HMGA1;Note=HMGA1:LoVo
+chrY	Cistrome_5244|Cell Line|LoVo	beta-Sheet binding to DNA	13137823	13137969	.	.	.	Name=HMGA1;Note=HMGA1:LoVo
+chrY	Cistrome_5244|Cell Line|LoVo	beta-Sheet binding to DNA	58827223	58827476	.	.	.	Name=HMGA1;Note=HMGA1:LoVo
+chrY	Cistrome_5244|Cell Line|LoVo	beta-Sheet binding to DNA	58855948	58856202	.	.	.	Name=HMGA1;Note=HMGA1:LoVo
+chrY	Cistrome_5244|Cell Line|LoVo	beta-Sheet binding to DNA	58862601	58862862	.	.	.	Name=HMGA1;Note=HMGA1:LoVo
+
+
+
+/data/www/TRlnc_JBrowser/bin/flatfile-to-json.pl --gff /data/www/TRlnc/DNaseI_track.gff --trackType CanvasFeatures --trackLabel DNaseI-seq --out /data/GB_Tracks/Tracks_DNaseI_TRlnc --metadata '{"category": "DNaseI-seq" }';
