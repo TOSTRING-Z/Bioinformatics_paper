@@ -9,12 +9,28 @@ from rpy2.robjects.packages import importr
 from rpy2.robjects import pandas2ri
 from rpy2.robjects.conversion import localconverter
 
+def KM(OS,Censored,as_group,data,ggsave=False,path="./",pvalue=0):
+    # 分组
+    surv_data = data[[OS, Censored, as_group]].sort_values(by=[as_group])
+    surv_data["group"] = "L"
+    surv_data.iloc[int(surv_data.shape[0] / 2):]["group"] = "H"
+    # Kaplan-Meier生存曲线
+    with localconverter(ro.default_converter + pandas2ri.converter):
+        robjects.globalenv["surv_data"] = pandas2ri.py2rpy(surv_data)
+    robjects.globalenv["surv_diff"] = r(f"survdiff(Surv({OS}, {Censored})~group,surv_data,rho = 0)")
+    Pvalue = r("1 - pchisq(surv_diff$chisq, length(surv_diff$n) -1)")[0]
+    if ggsave and Pvalue < pvalue:
+        r.ggsave(r(
+            f"autoplot(survfit(Surv({OS}, {Censored})~group,surv_data), xlab = 'Time', ylab = 'Survival')+ggtitle('Pvalue = {Pvalue}')"),
+                 file=f"{path}/{gene}.pdf")
+    return Pvalue
+
 if __name__ == "__main__":
     # 设置数据路径
     path = "/install/git/Bioinformatics_paper/胶质母细胞瘤微环境预后相关基因的TCGA数据库挖掘/"
     r.setwd(path)
     # 读取处理好的数据
-    sample = pd.read_csv(f"{path}sample.txt", sep="\t")
+    sample = pd.read_csv(f"{path}sample.txt", sep="\t",index_col=0)
     sample_Group = sample["Stromal_Group"]
     # 读取处理好的基因表达数据
     HT_HG_U133A_sample = pd.read_csv(f"{path}HT_HG_U133A_sample.txt", sep="\t").dropna()
@@ -52,12 +68,12 @@ if __name__ == "__main__":
     ## 读取表达矩阵
     with localconverter(ro.default_converter + pandas2ri.converter):
         exprSet_R = ro.conversion.py2rpy(HT_HG_U133A_sample)
-    group_list = "-".join(list(sample["Stromal_Group"].astype("str").unique()))
+    group_list = "-".join(list(sample["Stromal_Group"].astype("str").unique())[::-1])
     #exprSet_R = r(f'''read.table("{path}HT_HG_U133A_sample.txt",header=TRUE,sep="\t",row.names="sample")''')
     ## 制作分组矩阵
-    design = sample[["Stromal_Group_H", "Stromal_Group_L"]].set_index(sample["ID"])
+    design = sample[["Stromal_Group_L","Stromal_Group_H"]].set_index(sample["ID"])
     with localconverter(ro.default_converter + pandas2ri.converter):
-        design_R = ro.conversion.py2rpy(design.rename(columns={"Stromal_Group_H": "H", "Stromal_Group_L": "L"}))
+        design_R = ro.conversion.py2rpy(design.rename(columns={"Stromal_Group_L": "L","Stromal_Group_H": "H"}))
     ## 制作差异比较矩阵
     r('''suppressMessages(library(limma))''')
     contrast_matrix = r['makeContrasts'](group_list, levels=design_R)
@@ -104,6 +120,15 @@ if __name__ == "__main__":
         CC.query("pvalue<0.05").to_csv(f"{path}CC.txt", sep="\t")
         KEGG.query("pvalue<0.05").to_csv(f"{path}KEGG.txt", sep="\t")
 
+    ################# 上调基因生存分析 #################
+    # 数据准备
+    Differentially_significant_genes = pd.read_csv(f"{path}Differentially_significant_genes.txt",sep="\t",index_col=0)
+    Differentially_up_regulation_gene = Differentially_significant_genes.query("logFC>0")
+    surv_data = sample.join(HT_HG_U133A_sample.filter(items=Differentially_up_regulation_gene.index,axis=0).T)
+    # KM生存曲线 筛选Pvalue<0.05
+    for gene in Differentially_up_regulation_gene.index:
+        KM("OS.time", "OS", gene, surv_data, ggsave=True, path="upregulated_survival_analysis_output",pvalue=0.05)
+
     ################# 基因互作图 #################
     import networkx as nx
     import matplotlib.pyplot as plt
@@ -123,25 +148,15 @@ if __name__ == "__main__":
     nx.draw(G,pos, with_labels=True,cmap=plt.cm.Reds,edge_cmap=plt.cm.Blues,width=0.1, node_color=range(569), node_size=10,font_size=1, alpha=0.7)
     plt.savefig(f"{path}gene_interact.pdf",format="pdf", dpi=300)
     plt.show()
+
     ################# CGGA预后数据验证 #################
     # http://www.cgga.org.cn/download.jsp
     # 数据处理
     CGGA_prognosis_data = pd.read_csv(f"{path}CGGA.mRNAseq_325_clinical.20191128.txt", sep="\t", index_col="CGGA_ID")
     CGGA_gene_expression_matrix = pd.read_csv(f"{path}CGGA.mRNAseq_325.RSEM-genes.20191128.txt", sep="\t",index_col=0).T
-    Genelist = list(set(Differentially_significant_genes.index).intersection(set(CGGA_gene_expression_matrix.columns)))
-    CGGA_gene_expression_matrix = CGGA_gene_expression_matrix[Genelist]
-    CGGA_data = CGGA_prognosis_data.join(CGGA_gene_expression_matrix, how="left").dropna().query("Censor==1")
+    CGGA_data = CGGA_prognosis_data.join(CGGA_gene_expression_matrix, how="left").dropna()
     # CGGA_data.to_csv(f"{path}CGGA_data.txt", sep="\t")
     # CGGA_data_R = r(f'''read.table("{path}CGGA_data.txt",header=TRUE,sep="\t",row.names="CGGA_ID")''')
     # survival analysis
-    for gene in Genelist:
-        # 分组
-        surv_data = CGGA_data[["OS","Radio_status",gene]].sort_values(by=[gene])
-        surv_data["group"]="L"
-        surv_data.iloc[int(surv_data.shape[0] / 2):]["group"] = "H"
-        # Kaplan-Meier生存曲线
-        with localconverter(ro.default_converter + pandas2ri.converter):
-            robjects.globalenv["surv_data"] = pandas2ri.py2rpy(surv_data)
-        robjects.globalenv["surv_diff"] = r("survdiff(Surv(OS, Radio_status)~group,surv_data,rho = 0)")
-        Pvalue = r("1 - pchisq(surv_diff$chisq, length(surv_diff$n) -1)")[0]
-        r.ggsave(r(f"autoplot(survfit(Surv(OS, Radio_status)~group,surv_data), xlab = 'Time', ylab = 'Survival')+ggtitle('Pvalue = {Pvalue}')"), file=f"CGGA/{gene}.pdf")
+    for gene in CGGA_gene_expression_matrix.columns:
+        KM("OS","Censor",gene,CGGA_data,ggsave=True,path="CGGA",pvalue=0.05)
